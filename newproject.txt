@@ -845,31 +845,6 @@ TabLvUp:AddButton({
 -- SETTINGS TAB & SAVE MANAGER
 -- ===================================================================
 local TabsS = Window:AddTab({ Title = "Settings", Icon = "settings" })
-
-TabsS:AddButton({
-    Title = "⛔ Kill Script",
-    Description = "Dừng toàn bộ script, tắt UI và hủy mọi vòng lặp",
-    Callback = function()
-        -- Tắt tất cả toggle
-        farming = false
-        autoJoinEnabled = false
-        isLeveling = false
-        pcall(function() autoFarmToggle:SetValue(false) end)
-        pcall(function() autoJoinToggle:SetValue(false) end)
-
-        -- Đóng UI
-        pcall(function() Window:Destroy() end)
-
-        -- Dừng toàn bộ coroutine/task đang chạy
-        for _, v in pairs(game:GetService("ScriptContext"):GetChildren()) do
-            pcall(function() v:Destroy() end)
-        end
-
-        -- Kill script hoàn toàn
-        task.wait(0.2)
-        error("Script đã được tắt bởi người dùng.")
-    end
-})
 SaveManager:SetLibrary(Fluent)
 InterfaceManager:SetLibrary(Fluent)
 SaveManager:IgnoreThemeSettings()
