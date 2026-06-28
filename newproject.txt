@@ -701,33 +701,59 @@ local function runSquad()
     Fluent:Notify({ Title = "Squad xong!", Content = done.."/6 thành công!", Duration = 5 })
 end
 
+-- Build squad unit list (kể cả khi unitNames rỗng thì vẫn load từ data)
+local squadUnitNames = {}
+local squadUnitMap = {}
+
+-- Dùng lại unitNames nếu có
+if #unitNames > 1 then
+    for _, name in ipairs(unitNames) do
+        table.insert(squadUnitNames, name)
+        squadUnitMap[name] = unitMap[name]
+    end
+else
+    -- Fallback: load thẳng từ data.characters
+    table.insert(squadUnitNames, "Select a unit...")
+    squadUnitMap["Select a unit..."] = nil
+    pcall(function()
+        local d = require(utility).data
+        for id, char in pairs(d.characters or {}) do
+            if char and char.name then
+                local key = "Lv"..(char.level or 1).." "..char.name
+                table.insert(squadUnitNames, key)
+                squadUnitMap[key] = { id = id, name = char.name, level = char.level or 1 }
+            end
+        end
+    end)
+end
+
 -- Slot 1
-TabSquad:AddDropdown("SlotUnit1",{Title="[Slot 1] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[1].unit=unitMap[v] end)
+TabSquad:AddDropdown("SlotUnit1",{Title="[Slot 1] Chọn Unit",Values=squadUnitNames,Multi=false,Default=1}):OnChanged(function(v) slots[1].unit=squadUnitMap[v] end)
 TabSquad:AddInput("SlotLevel1",{Title="[Slot 1] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[1].targetLevel=tonumber(v) or 1 end)
 TabSquad:AddToggle("SlotOn1",{Title="[Slot 1] Bật",Default=true}):OnChanged(function(v) slots[1].enabled=v end)
 
 -- Slot 2
-TabSquad:AddDropdown("SlotUnit2",{Title="[Slot 2] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[2].unit=unitMap[v] end)
+TabSquad:AddDropdown("SlotUnit2",{Title="[Slot 2] Chọn Unit",Values=squadUnitNames,Multi=false,Default=1}):OnChanged(function(v) slots[2].unit=squadUnitMap[v] end)
 TabSquad:AddInput("SlotLevel2",{Title="[Slot 2] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[2].targetLevel=tonumber(v) or 1 end)
 TabSquad:AddToggle("SlotOn2",{Title="[Slot 2] Bật",Default=true}):OnChanged(function(v) slots[2].enabled=v end)
 
 -- Slot 3
-TabSquad:AddDropdown("SlotUnit3",{Title="[Slot 3] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[3].unit=unitMap[v] end)
+TabSquad:AddDropdown("SlotUnit3",{Title="[Slot 3] Chọn Unit",Values=squadUnitNames,Multi=false,Default=1}):OnChanged(function(v) slots[3].unit=squadUnitMap[v] end)
 TabSquad:AddInput("SlotLevel3",{Title="[Slot 3] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[3].targetLevel=tonumber(v) or 1 end)
 TabSquad:AddToggle("SlotOn3",{Title="[Slot 3] Bật",Default=true}):OnChanged(function(v) slots[3].enabled=v end)
 
 -- Slot 4
-TabSquad:AddDropdown("SlotUnit4",{Title="[Slot 4] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[4].unit=unitMap[v] end)
+TabSquad:AddDropdown("SlotUnit4",{Title="[Slot 4] Chọn Unit",Values=squadUnitNames,Multi=false,Default=1}):OnChanged(function(v) slots[4].unit=squadUnitMap[v] end)
 TabSquad:AddInput("SlotLevel4",{Title="[Slot 4] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[4].targetLevel=tonumber(v) or 1 end)
 TabSquad:AddToggle("SlotOn4",{Title="[Slot 4] Bật",Default=true}):OnChanged(function(v) slots[4].enabled=v end)
 
 -- Slot 5
-TabSquad:AddDropdown("SlotUnit5",{Title="[Slot 5] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[5].unit=unitMap[v] end)
+TabSquad:AddDropdown("SlotUnit5",{Title="[Slot 5] Chọn Unit",Values=squadUnitNames,Multi=false,Default=1}):OnChanged(function(v) slots[5].unit=squadUnitMap[v] end)
 TabSquad:AddInput("SlotLevel5",{Title="[Slot 5] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[5].targetLevel=tonumber(v) or 1 end)
 TabSquad:AddToggle("SlotOn5",{Title="[Slot 5] Bật",Default=true}):OnChanged(function(v) slots[5].enabled=v end)
 
 -- Slot 6
-TabSquad:AddDropdown("SlotUnit6",{Title="[Slot 6] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[6].unit=unitMap[v] end)
+TabSquad:AddDropdown("SlotUnit6",{Title="[Slot 6] Chọn Unit",Values=squadUnitNames,Multi=false,Default=1}):OnChanged(function(v) slots[6].unit=squadUnitMap[v] end)
 TabSquad:AddInput("SlotLevel6",{Title="[Slot 6] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[6].targetLevel=tonumber(v) or 1 end)
 TabSquad:AddToggle("SlotOn6",{Title="[Slot 6] Bật",Default=true}):OnChanged(function(v) slots[6].enabled=v end)
 
@@ -785,7 +811,8 @@ TabsS:AddButton({
         -- Tắt tất cả toggle
         farming = false
         autoJoinEnabled = false
-        isLeveling = false
+        isRunningSquad = false
+        autoPlayEnabled = false
         pcall(function() autoFarmToggle:SetValue(false) end)
         pcall(function() autoJoinToggle:SetValue(false) end)
 
