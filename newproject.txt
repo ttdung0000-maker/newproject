@@ -688,10 +688,16 @@ local function getCurrentLevel(unit)
     pcall(function()
         local m = require(utility)
         local d = m.data
-        for id, char in pairs(d.characters or {}) do
-            if char.name == unit.name then
-                unit.level = char.level or unit.level
-                return
+        -- Ưu tiên tìm theo id (UUID)
+        if unit.id and d.characters[unit.id] then
+            unit.level = d.characters[unit.id].level or unit.level
+        else
+            for id, char in pairs(d.characters or {}) do
+                if char.name == unit.name then
+                    unit.level = char.level or unit.level
+                    unit.id = id -- lưu lại UUID để dùng sau
+                    break
+                end
             end
         end
     end)
@@ -728,9 +734,9 @@ local function doLevelUp(unit, targetLv)
             break
         end
 
-        -- upgrade remote: FireServer với characterId
+        -- upgrade remote: FireServer với UUID
         pcall(function()
-            levelRemote:FireServer(unit.id or unit.name)
+            levelRemote:FireServer(unit.id)
         end)
 
         loopCount = loopCount + 1
@@ -765,7 +771,7 @@ local function doLevelUp(unit, targetLv)
         if autoSpawnToggle.Value and spawnRemote then
             task.wait(0.5)
             pcall(function()
-                spawnRemote:FireServer(unit.id or unit.name)
+                spawnRemote:FireServer(unit.id)
             end)
             Fluent:Notify({ Title = "Spawn", Content = "Đã spawn " .. unit.name .. " ra!", Duration = 3 })
         end
@@ -829,7 +835,7 @@ TabLvUp:AddButton({
             return
         end
         pcall(function()
-            spawnRemote:FireServer(selectedSpawnUnit.id or selectedSpawnUnit.name)
+            spawnRemote:FireServer(selectedSpawnUnit.id)
         end)
         Fluent:Notify({ Title = "Spawn", Content = "Đã spawn " .. selectedSpawnUnit.name, Duration = 3 })
     end
