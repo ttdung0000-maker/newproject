@@ -648,46 +648,22 @@ end)
 -- ===================================================================
 local TabSquad = Window:AddTab({ Title = "Squad Setup", Icon = "users" })
 
--- Remote
 local upgradeRemote = ReplicatedStorage.Remotes.Characters:WaitForChild("upgrade")
 local spawnRemote2 = ReplicatedStorage.Remotes.Characters:WaitForChild("spawn")
 local autoplayRemote
 pcall(function() autoplayRemote = ReplicatedStorage.Remotes.Characters:WaitForChild("autoplay") end)
 
--- Cấu hình 6 slot
 local slots = {}
-for i = 1, 6 do
-    slots[i] = { unit = nil, targetLevel = 1, enabled = true }
-end
-
+for i = 1, 6 do slots[i] = { unit = nil, targetLevel = 1, enabled = true } end
 local isRunningSquad = false
 
 local function getLevelById(uid)
     local lv = 0
     pcall(function()
         local d = require(utility).data
-        if d.characters and d.characters[uid] then
-            lv = d.characters[uid].level or 0
-        end
+        if d.characters and d.characters[uid] then lv = d.characters[uid].level or 0 end
     end)
     return lv
-end
-
-local function levelUpUnit(uid, targetLv, name)
-    local currentLv = getLevelById(uid)
-    if currentLv >= targetLv then return true end
-    Fluent:Notify({ Title = "⬆ " .. name, Content = "Lv"..currentLv.." → Lv"..targetLv, Duration = 3 })
-    local maxLoop = math.max((targetLv - currentLv) * 10, 100)
-    local count = 0
-    while isRunningSquad and count < maxLoop do
-        currentLv = getLevelById(uid)
-        if currentLv >= targetLv then break end
-        pcall(function() upgradeRemote:FireServer(uid) end)
-        count = count + 1
-        task.wait(0.3)
-    end
-    task.wait(0.5)
-    return getLevelById(uid) >= targetLv
 end
 
 local function runSquad()
@@ -697,89 +673,102 @@ local function runSquad()
         if not isRunningSquad then break end
         local s = slots[i]
         if not s.enabled or not s.unit or not s.unit.id then continue end
-        local ok = levelUpUnit(s.unit.id, s.targetLevel, s.unit.name)
-        if not isRunningSquad then break end
-        if ok then
-            pcall(function() spawnRemote2:FireServer(s.unit.id) end)
+        local uid = s.unit.id
+        local name = s.unit.name
+        local targetLv = s.targetLevel
+        local currentLv = getLevelById(uid)
+        Fluent:Notify({ Title = "Slot "..i..": "..name, Content = "Lv"..currentLv.." → Lv"..targetLv, Duration = 3 })
+        local maxLoop = math.max((targetLv - currentLv) * 10, 50)
+        local count = 0
+        while isRunningSquad and count < maxLoop do
+            currentLv = getLevelById(uid)
+            if currentLv >= targetLv then break end
+            pcall(function() upgradeRemote:FireServer(uid) end)
+            count = count + 1
+            task.wait(0.3)
+        end
+        task.wait(0.5)
+        if getLevelById(uid) >= targetLv then
+            pcall(function() spawnRemote2:FireServer(uid) end)
             task.wait(0.5)
-            Fluent:Notify({ Title = "✓ Slot "..i, Content = "Spawn "..s.unit.name.." thành công!", Duration = 2 })
+            Fluent:Notify({ Title = "✓ Slot "..i, Content = "Spawn "..name.." xong!", Duration = 2 })
             done = done + 1
         else
-            Fluent:Notify({ Title = "✗ Slot "..i, Content = s.unit.name.." không đạt Lv"..s.targetLevel, Duration = 3 })
+            Fluent:Notify({ Title = "✗ Slot "..i, Content = name.." không đạt Lv"..targetLv, Duration = 3 })
         end
-        task.wait(0.3)
     end
     isRunningSquad = false
-    Fluent:Notify({ Title = "✓ Squad xong!", Content = "Hoàn thành "..done.."/6 slot!", Duration = 5 })
+    Fluent:Notify({ Title = "Squad xong!", Content = done.."/6 thành công!", Duration = 5 })
 end
 
--- UI từng slot
-for i = 1, 6 do
-    TabSquad:AddDropdown("SlotUnit"..i, {
-        Title = "Slot "..i.." - Chọn Unit",
-        Values = unitNames, Multi = false, Default = 1,
-    }):OnChanged(function(val) slots[i].unit = unitMap[val] end)
+-- Slot 1
+TabSquad:AddDropdown("SlotUnit1",{Title="[Slot 1] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[1].unit=unitMap[v] end)
+TabSquad:AddInput("SlotLevel1",{Title="[Slot 1] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[1].targetLevel=tonumber(v) or 1 end)
+TabSquad:AddToggle("SlotOn1",{Title="[Slot 1] Bật",Default=true}):OnChanged(function(v) slots[1].enabled=v end)
 
-    TabSquad:AddInput("SlotLevel"..i, {
-        Title = "Slot "..i.." - Cấp mục tiêu",
-        Default = "1", Numeric = true, Finished = false,
-    }):OnChanged(function(val) slots[i].targetLevel = tonumber(val) or 1 end)
+-- Slot 2
+TabSquad:AddDropdown("SlotUnit2",{Title="[Slot 2] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[2].unit=unitMap[v] end)
+TabSquad:AddInput("SlotLevel2",{Title="[Slot 2] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[2].targetLevel=tonumber(v) or 1 end)
+TabSquad:AddToggle("SlotOn2",{Title="[Slot 2] Bật",Default=true}):OnChanged(function(v) slots[2].enabled=v end)
 
-    TabSquad:AddToggle("SlotOn"..i, {
-        Title = "Slot "..i.." - Bật/Tắt",
-        Default = true,
-    }):OnChanged(function(val) slots[i].enabled = val end)
+-- Slot 3
+TabSquad:AddDropdown("SlotUnit3",{Title="[Slot 3] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[3].unit=unitMap[v] end)
+TabSquad:AddInput("SlotLevel3",{Title="[Slot 3] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[3].targetLevel=tonumber(v) or 1 end)
+TabSquad:AddToggle("SlotOn3",{Title="[Slot 3] Bật",Default=true}):OnChanged(function(v) slots[3].enabled=v end)
 
-    TabSquad:AddDivider()
-end
+-- Slot 4
+TabSquad:AddDropdown("SlotUnit4",{Title="[Slot 4] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[4].unit=unitMap[v] end)
+TabSquad:AddInput("SlotLevel4",{Title="[Slot 4] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[4].targetLevel=tonumber(v) or 1 end)
+TabSquad:AddToggle("SlotOn4",{Title="[Slot 4] Bật",Default=true}):OnChanged(function(v) slots[4].enabled=v end)
+
+-- Slot 5
+TabSquad:AddDropdown("SlotUnit5",{Title="[Slot 5] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[5].unit=unitMap[v] end)
+TabSquad:AddInput("SlotLevel5",{Title="[Slot 5] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[5].targetLevel=tonumber(v) or 1 end)
+TabSquad:AddToggle("SlotOn5",{Title="[Slot 5] Bật",Default=true}):OnChanged(function(v) slots[5].enabled=v end)
+
+-- Slot 6
+TabSquad:AddDropdown("SlotUnit6",{Title="[Slot 6] Chọn Unit",Values=unitNames,Multi=false,Default=1}):OnChanged(function(v) slots[6].unit=unitMap[v] end)
+TabSquad:AddInput("SlotLevel6",{Title="[Slot 6] Cấp mục tiêu",Default="1",Numeric=true,Finished=false}):OnChanged(function(v) slots[6].targetLevel=tonumber(v) or 1 end)
+TabSquad:AddToggle("SlotOn6",{Title="[Slot 6] Bật",Default=true}):OnChanged(function(v) slots[6].enabled=v end)
 
 TabSquad:AddButton({
     Title = "▶ Chạy Squad",
-    Description = "Level up + Spawn tất cả slot đã bật",
+    Description = "Level up + Spawn tất cả slot đang bật",
     Callback = function()
-        if isRunningSquad then
-            Fluent:Notify({ Title = "Đang chạy!", Content = "Vui lòng đợi hoặc bấm Dừng.", Duration = 3 })
-            return
-        end
-        for i = 1, 6 do
-            if Options["SlotLevel"..i] then
-                slots[i].targetLevel = tonumber(Options["SlotLevel"..i].Value) or 1
-            end
-        end
+        if isRunningSquad then Fluent:Notify({Title="Đang chạy!",Content="Bấm Dừng trước.",Duration=3}) return end
+        for i=1,6 do if Options["SlotLevel"..i] then slots[i].targetLevel=tonumber(Options["SlotLevel"..i].Value) or 1 end end
         task.spawn(runSquad)
     end
 })
 
 TabSquad:AddButton({
     Title = "⏹ Dừng Squad",
-    Description = "Dừng quá trình đang chạy",
+    Description = "Dừng ngay lập tức",
     Callback = function()
         isRunningSquad = false
-        Fluent:Notify({ Title = "Dừng", Content = "Đã dừng Squad.", Duration = 3 })
+        Fluent:Notify({Title="Dừng",Content="Đã dừng Squad.",Duration=3})
     end
 })
 
 TabSquad:AddDivider()
 
 local autoPlayEnabled = false
-TabSquad:AddToggle("AutoPlayToggle", {
+TabSquad:AddToggle("AutoPlayToggle",{
     Title = "⚡ Auto Play",
-    Description = "Tự động bật autoplay trong trận liên tục",
+    Description = "Tự động bật autoplay trong trận",
     Default = false,
 }):OnChanged(function(val)
     autoPlayEnabled = val
     if val then
         task.spawn(function()
             while autoPlayEnabled do
-                pcall(function()
-                    if autoplayRemote then autoplayRemote:FireServer() end
-                end)
+                pcall(function() if autoplayRemote then autoplayRemote:FireServer() end end)
                 task.wait(3)
             end
         end)
-        Fluent:Notify({ Title = "Auto Play", Content = "Đã bật!", Duration = 2 })
+        Fluent:Notify({Title="Auto Play",Content="Đã bật!",Duration=2})
     else
-        Fluent:Notify({ Title = "Auto Play", Content = "Đã tắt.", Duration = 2 })
+        Fluent:Notify({Title="Auto Play",Content="Đã tắt.",Duration=2})
     end
 end)
 
